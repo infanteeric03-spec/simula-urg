@@ -47,7 +47,7 @@ jobs:
           if [ "${{ inputs.force }}" = "true" ] || [ -z "$lastsha" ] || ! git cat-file -e "$lastsha" 2>/dev/null; then
             echo "go=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          if git diff --quiet "$lastsha" HEAD -- index.html manual manifest.json icon-512.png android-app .github/workflows/android-apk.yml; then
+          if git diff --quiet "$lastsha" HEAD -- index.html manual manifest.json icon-512.png icon-maskable-512.png android-app .github/workflows/android-apk.yml; then
             echo "Sin cambios desde la última APK: se omite."; echo "go=false" >> "$GITHUB_OUTPUT"
           else
             echo "go=true" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,2 @@
+Icono C de P•SINUSAL (PS sobre un monitor). fondo.svg = icono completo; primer-plano.svg = solo el monitor sobre transparente (capa de primer plano del icono adaptable de Android).
+Se exportan a PNG con Chrome (ver generador en el historial de la sesión): web icon-512/192/180/favicon-32 + maskable, mipmap-* y splash de Android.

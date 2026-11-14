@@ -14,7 +14,7 @@ const copy = (rel) => {
   if (!fs.existsSync(src)) return;
   fs.cpSync(src, dst, { recursive: true });
 };
-['index.html', 'manifest.json', 'favicon-32.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'manual'].forEach(copy);
+['index.html', 'manifest.json', 'favicon-32.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'manual'].forEach(copy);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const m = html.match(/<script type="application\/json" id="appChangelog">([\s\S]*?)<\/script>/);
