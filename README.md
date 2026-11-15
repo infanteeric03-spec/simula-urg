@@ -1,4 +1,4 @@
-# P•SINUSAL
+# PSiNUSAL
 
 Simulación clínica de urgencias: monitor de constantes y arritmias para formación (docente y estudiante).
 
