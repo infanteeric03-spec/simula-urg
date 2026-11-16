@@ -18,7 +18,7 @@ def ok(msg):
     steps.append(msg); print('  ✓', msg, flush=True)
 
 async def new_page(browser, name, teacher=False):
-    ctx = await browser.new_context(viewport={'width': 1100, 'height': 800} if teacher else {'width': 400, 'height': 800}, locale='es-ES')
+    ctx = await browser.new_context(viewport={'width': 1100, 'height': 800} if teacher else {'width': 400, 'height': 800}, locale='es-ES', service_workers='block')
     if teacher:
         await ctx.add_init_script("try{ localStorage.setItem('monitor-inv','%s'); localStorage.setItem('monitor-dev','%s'); }catch(e){}" % (INV, DEV))
     pg = await ctx.new_page(); pg._name = name
