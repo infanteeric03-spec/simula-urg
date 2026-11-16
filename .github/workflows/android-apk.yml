@@ -105,9 +105,17 @@ jobs:
           # La clave de firma se toma del secreto ANDROID_KEYSTORE_B64 (base64 del .jks) si existe;
           # si no, del archivo del repositorio (compatibilidad hasta que el secreto esté creado).
           if [ -n "$KEYSTORE_B64" ]; then
-            printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            export KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
-            echo "Firma: clave tomada del secreto."
+            # se toleran espacios y saltos de línea añadidos al pegar el secreto
+            printf '%s' "$KEYSTORE_B64" | tr -d ' \n\r\t' | base64 -d -i > "$RUNNER_TEMP/release.jks" || true
+            if [ "$(sha256sum "$RUNNER_TEMP/release.jks" | cut -d' ' -f1)" = "990dba5dd697bae9faca2c316e0728a323c7e9349f30a4cab913da810ff2a3db" ]; then
+              export KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+              echo "Firma: clave tomada del secreto."
+            elif [ -f "$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks" ]; then
+              export KEYSTORE_FILE="$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks"
+              echo "::warning::El secreto ANDROID_KEYSTORE_B64 no coincide con la clave de firma (¿pegado incompleto?): se firma con la del repositorio."
+            else
+              echo "::error::El secreto ANDROID_KEYSTORE_B64 no coincide con la clave de firma."; exit 1
+            fi
           elif [ -f "$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks" ]; then
             export KEYSTORE_FILE="$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks"
             echo "::warning::Firma con la clave del repositorio: falta el secreto ANDROID_KEYSTORE_B64."
