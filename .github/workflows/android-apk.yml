@@ -93,6 +93,7 @@ jobs:
         working-directory: android-app/android
         env:
           KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
           chmod +x gradlew
           # GitHub a veces falla al servir la descarga de Gradle (504): hasta 3 intentos
@@ -101,7 +102,19 @@ jobs:
             gw   # comprueba que compila, pero sin firma no se publica
             echo "::error::Falta el secreto ANDROID_KEYSTORE_PASS (Settings › Secrets and variables › Actions)."; exit 1
           fi
-          export KEYSTORE_FILE="$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks" KEY_ALIAS=simulador
+          # La clave de firma se toma del secreto ANDROID_KEYSTORE_B64 (base64 del .jks) si existe;
+          # si no, del archivo del repositorio (compatibilidad hasta que el secreto esté creado).
+          if [ -n "$KEYSTORE_B64" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+            echo "Firma: clave tomada del secreto."
+          elif [ -f "$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks" ]; then
+            export KEYSTORE_FILE="$GITHUB_WORKSPACE/android-app/keystore/simulador-release.jks"
+            echo "::warning::Firma con la clave del repositorio: falta el secreto ANDROID_KEYSTORE_B64."
+          else
+            echo "::error::No hay clave de firma: falta el secreto ANDROID_KEYSTORE_B64."; exit 1
+          fi
+          export KEY_ALIAS=simulador
           gw
           mkdir -p "$GITHUB_WORKSPACE/dist"
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/PSiNUSAL-$APK_NAME.apk"
@@ -111,3 +124,12 @@ jobs:
         run: |
           node android-app/scripts/notes.mjs "${{ steps.gate.outputs.lastweb }}" > notes.md
           gh release create "apk-$APK_CODE" dist/*.apk --title "PSiNUSAL · App Android $APK_NAME" --notes-file notes.md --latest
+
+      # Se conservan solo las 5 APK más recientes (release y su etiqueta)
+      - name: Limpiar APK antiguas
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        run: |
+          gh release list --limit 200 --json tagName,createdAt -q 'sort_by(.createdAt) | reverse | .[5:] | .[].tagName' | while read -r t; do
+            case "$t" in apk-*) echo "Borrando $t"; gh release delete "$t" --yes --cleanup-tag || true;; esac
+          done
