@@ -109,6 +109,10 @@ async def run():
                 try:
                     await pg.screenshot(path=os.path.join(OUT, pg._name + '.png'))
                     print('  [%s] estado de la puerta: %r' % (pg._name, await status(pg)), flush=True)
+                    print('  [%s] diagnóstico: %r' % (pg._name, await pg.evaluate("""(async()=>{ const d=id=>{ const e=document.getElementById(id); return e ? getComputedStyle(e).display : null; };
+                        let inv=null; try{ inv = await invVerify(invCode()); }catch(e){ inv = String(e); }
+                        return { role: typeof role!=='undefined' ? role : null, sel: typeof selectedRole!=='undefined' ? selectedRole : null, gate:d('gate'), roleStep:d('gateRoleStep'), roomStep:d('gateRoomStep'), invStep:d('gateInvStep'),
+                                 invStatus:(document.getElementById('invStatus')||{}).textContent, invCode:invCode(), dev:invDevice(), supa:!!window.supabase, client:!!supaClient(), inv }; })()""")), flush=True)
                 except Exception as e:
                     print('  [%s] sin captura: %s' % (pg._name, e), flush=True)
             await b.close(); sys.exit(1)
