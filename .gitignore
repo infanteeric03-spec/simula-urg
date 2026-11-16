@@ -1,0 +1,4 @@
+
+# la clave de firma vive en el secreto ANDROID_KEYSTORE_B64, no en el repositorio
+*.jks
+*.keystore
