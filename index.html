@@ -10309,7 +10309,7 @@ async function openEcgBank(){
    - Subida y borrado por la función «aula» (comprueba al docente de la sala).
    - Lectura: URLs firmadas de 2 horas. Solo se proyecta mientras el panel está abierto.
    ===================================================================== */
-const AULA_MAX_BYTES = 10 * 1024 * 1024, AULA_MAX_PAGES = 30, AULA_MAX_DECKS = 5;
+const AULA_MAX_BYTES = 10 * 1024 * 1024, AULA_MAX_PAGES = 60, AULA_MAX_DECKS = 5;
 const AULA_TIERS = [{ w:1600, q:0.8 }, { w:1280, q:0.7 }, { w:1024, q:0.6 }];
 var AULAS = { list:[], deck:null, urls:[], page:0, live:false, busy:false, ink:{}, tool:null, color:'#ffd60a', cur:null, pend:[], drag:false, ptrLast:null, hb:null, ft:null, _pt:0, size:6, paused:false, pick:false };
 const AULA_COLORS = ['#ffd60a','#34c759','#ff453a','#0a84ff'];
@@ -10322,7 +10322,7 @@ async function aulaCall(body){
   return j;
 }
 function aulaReason(r, e){
-  const m = { auth:'No tienes permiso en esta sala.', pages:'Máximo 30 páginas.', size:'Máximo 10 MB.', limit:'Hay 5 presentaciones en la sala. Borra una para subir otra.' };
+  const m = { auth:'No tienes permiso en esta sala.', pages:'Máximo 60 páginas.', size:'Máximo 10 MB.', limit:'Hay 5 presentaciones en la sala. Borra una para subir otra.' };
   return (r && m[r.reason]) || (e && e.message) || 'Error al guardar la presentación.';
 }
 function openAula(){
@@ -10384,7 +10384,7 @@ function aulaRender(){
     + '<small>'+d.pages+' págs · '+(d.bytes/1048576).toFixed(1)+' MB · último uso '+escapeHtml(invWhen(d.last_used_at))+'</small></div>'
     + '<div class="aula-acts"><button type="button" class="casebtn primary" onclick="aulaOpenDeck(\''+d.id+'\')">Abrir</button>'
     + '<button type="button" class="casebtn" onclick="aulaDelete(\''+d.id+'\')">Borrar</button></div></div>').join('');
-  body.innerHTML = '<p class="aula-note">Las presentaciones se conservan 24 horas desde el último uso, por si se cierra la sala sin querer. Antes de subir un PDF, comprueba que está anonimizado. Máximo 10 MB y 30 páginas; hasta 5 presentaciones por sala.</p>'
+  body.innerHTML = '<p class="aula-note">Las presentaciones se conservan 24 horas desde el último uso, por si se cierra la sala sin querer. Antes de subir un PDF, comprueba que está anonimizado. Máximo 10 MB y 60 páginas; hasta 5 presentaciones por sala.</p>'
     + (cards || '<div class="eb-empty">Aún no hay presentaciones en esta sala.</div>')
     + '<div class="aula-up"><label class="casebtn primary'+(off?' is-off':'')+'">Subir PDF<input type="file" accept="application/pdf" hidden'+(off?' disabled':'')+' onchange="aulaUpload(this.files[0]); this.value=\'\'"></label>'
     + '<span id="aulaProg" class="aula-prog" aria-live="polite"></span></div>';
@@ -10414,7 +10414,7 @@ async function aulaUpload(file){
   try{
     const lib = await loadPdfJs();
     const pdf = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
-    if(pdf.numPages > AULA_MAX_PAGES){ showToast('Máximo 30 páginas (el PDF tiene ' + pdf.numPages + ').', 5000); return; }
+    if(pdf.numPages > AULA_MAX_PAGES){ showToast('Máximo 60 páginas (el PDF tiene ' + pdf.numPages + ').', 5000); return; }
     let blobs = null;
     for(const t of AULA_TIERS){
       const b = await aulaRenderPages(pdf, t);
