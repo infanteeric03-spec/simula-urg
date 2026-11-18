@@ -2954,6 +2954,14 @@
     .aula-box.is-deck .aula-aud{ max-height:none; overflow:visible; }
   }
   .aula-aud:empty{ display:none; }
+  .aula-box.is-deck{ position:relative; }
+  .aula-aud-float{ position:absolute; left:10px; right:10px; z-index:60; background:var(--panel,#fff); color:var(--text); border:1px solid var(--line); border-left:4px solid #ff4d5e; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.3); padding:6px 10px; max-height:60%; overflow:auto; font-size:13px; }
+  .aula-aud-float[hidden]{ display:none; }
+  .aula-aud-float.is-folded{ max-height:none; overflow:visible; }
+  .aula-aud-float.is-folded .aula-aud-body{ display:none; }
+  .aula-aud-fold svg{ width:16px; height:16px; transition:transform .2s; }
+  .aula-aud-float.is-folded .aula-aud-fold svg{ transform:rotate(180deg); }
+  .aula-air{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:8px 10px; border:1px solid #ff4d5e; border-radius:10px; }
   .aula-aud-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:4px 2px; }
   .aula-aud-btns{ display:flex; gap:6px; }
   .aula-aud-list{ list-style:none; margin:4px 0; padding:0; max-height:150px; overflow:auto; }
@@ -4595,6 +4603,7 @@
       <button type="button" class="st-x" onclick="closeAula()" aria-label="Cerrar el aula">✕</button>
     </div>
     <div class="aula-body" id="aulaBody" aria-live="polite"></div>
+    <div class="aula-aud-float" id="aulaAudFloat" hidden></div>
   </div>
 </div>
 <div class="aula-mini" id="aulaMini" role="region" aria-label="Presentación en directo minimizada" hidden>
@@ -4604,7 +4613,7 @@
   <button type="button" class="casebtn" id="aulaMiniNext" onclick="aulaGo(1)" aria-label="Página siguiente">›</button>
   <button type="button" class="casebtn" id="aulaMiniPause" onclick="aulaPauseMini()">Mostrar monitor</button>
   <button type="button" class="casebtn aula-ic" onclick="aulaMaximize()" title="Ampliar la presentación" aria-label="Ampliar la presentación"><svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4"/></g></svg></button>
-  <button type="button" class="casebtn" onclick="aulaStop()">Parar</button>
+  <button type="button" class="casebtn" id="aulaMiniStop" onclick="aulaStop()">Parar</button>
 </div>
 <div id="ecgEditorOverlay" role="dialog" aria-modal="true" aria-labelledby="eeTitle">
   <div class="ee-box">
@@ -10311,7 +10320,7 @@ async function openEcgBank(){
    ===================================================================== */
 const AULA_MAX_BYTES = 10 * 1024 * 1024, AULA_MAX_PAGES = 60, AULA_MAX_DECKS = 5;
 const AULA_TIERS = [{ w:1600, q:0.8 }, { w:1280, q:0.7 }, { w:1024, q:0.6 }];
-var AULAS = { list:[], deck:null, urls:[], page:0, live:false, busy:false, ink:{}, tool:null, color:'#ffd60a', cur:null, pend:[], drag:false, ptrLast:null, hb:null, ft:null, _pt:0, size:6, paused:false, pick:false };
+var AULAS = { list:[], deck:null, urls:[], page:0, live:false, busy:false, ink:{}, tool:null, color:'#ffd60a', cur:null, pend:[], drag:false, ptrLast:null, hb:null, ft:null, _pt:0, size:6, paused:false, pick:false, browse:false, mini:false, audFold:false };
 const AULA_COLORS = ['#ffd60a','#34c759','#ff453a','#0a84ff'];
 async function aulaCall(body){
   const r = await fetch(SUPABASE_URL + '/functions/v1/aula', { method:'POST',
@@ -10336,7 +10345,8 @@ function closeAula(){
   if(AULAS.live){ AULAS.live = false; aulaSend(); }
   aulaPtrOff(); AULAS.tool = null;
   document.getElementById('aulaOverlay').classList.remove('open');
-  AULAS.deck = null;
+  AULAS.deck = null; AULAS.browse = false; AULAS.mini = false;
+  aulaMiniRender();
 }
 async function aulaLoadList(){
   AULAS.list = [];
@@ -10349,16 +10359,21 @@ async function aulaLoadList(){
   aulaRender();
 }
 function aulaProgress(t){ const el = document.getElementById('aulaProg'); if(el) el.textContent = t; }
-function aulaShowList(){ aulaPtrOff(); AULAS.tool = null; AULAS.deck = null; AULAS.live = false; aulaSend(); aulaRender(); }
+function aulaShowList(){
+  aulaPtrOff(); AULAS.tool = null;
+  if(AULAS.live){ AULAS.browse = true; aulaRender(); return; }   // en directo: el alumnado sigue viendo la presentación
+  AULAS.deck = null; AULAS.browse = false; AULAS.mini = false; aulaSend(); aulaRender();
+}
+function aulaBackToAir(){ AULAS.browse = false; aulaRender(); }
 function aulaRender(){
   const body = document.getElementById('aulaBody'), back = document.getElementById('aulaBack'), title = document.getElementById('aulaTitle');
   if(!body) return;
   const boxEl = document.querySelector('.aula-box'); if(boxEl) boxEl.classList.toggle('is-deck', !!AULAS.deck);
-  ['aulaXmitBtn','aulaAudBtn'].forEach(id=>{ const e = document.getElementById(id); if(e) e.hidden = !AULAS.deck; });
-  const minBtn = document.getElementById('aulaMinBtn'); if(minBtn) minBtn.hidden = !(AULAS.deck && AULAS.live);
-  if(AULAS.deck){
+  ['aulaXmitBtn','aulaAudBtn'].forEach(id=>{ const e = document.getElementById(id); if(e) e.hidden = !(AULAS.deck && !AULAS.browse); });
+  const minBtn = document.getElementById('aulaMinBtn'); if(minBtn) minBtn.hidden = !(AULAS.deck && !AULAS.browse);
+  if(AULAS.deck && !AULAS.browse){
     const d = AULAS.list.find(x=>x.id===AULAS.deck), n = AULAS.urls.length, on = (t)=> AULAS.tool===t;
-    back.hidden = false; title.textContent = 'Presentación';
+    back.hidden = false; title.textContent = ''; title.hidden = true;
     const xb = document.getElementById('aulaXmitBtn'); if(xb){ xb.classList.toggle('primary', !!AULAS.live); xb.setAttribute('aria-pressed', AULAS.live ? 'true' : 'false'); xb.title = AULAS.live ? 'Transmitiendo (pulsa para parar)' : 'Transmitir'; xb.setAttribute('aria-label', xb.title); }
     body.innerHTML = '<div class="aula-slide-name" title="'+escapeHtml(d ? d.title : '')+'">'+escapeHtml(d ? d.title : 'Presentación')+'</div><div class="aula-view"><div class="aula-stage"><div class="aula-fit" id="aulaFit"><img id="aulaImg" alt="Página '+(AULAS.page+1)+' de '+n+'" src="'+AULAS.urls[AULAS.page]+'" onload="aulaFitRedraw()"><canvas id="aulaInk" class="aula-ink"></canvas><div class="aula-ptr local" id="aulaTPtr" hidden></div></div></div>'
       + '<div class="aula-side"><div class="aula-tools" role="toolbar" aria-label="Señalar y anotar">'
@@ -10374,20 +10389,21 @@ function aulaRender(){
       + '<button type="button" class="casebtn" onclick="aulaGo(-1)"'+(AULAS.page<=0?' disabled':'')+' aria-label="Página anterior">‹</button>'
       + '<span id="aulaNum">'+(AULAS.page+1)+'/'+n+'</span>'
       + '<button type="button" class="casebtn" onclick="aulaGo(1)"'+(AULAS.page>=n-1?' disabled':'')+' aria-label="Página siguiente">›</button>'
-      + '</div><div class="aula-aud" id="aulaAud"></div></div></div>';
+      + '</div></div></div>';
     aulaInkMount(); aulaAudioRender(); aulaMiniRender();
     return;
   }
-  back.hidden = true; title.textContent = 'Aula · presentaciones';
+  back.hidden = true; title.textContent = 'Aula · presentaciones'; title.hidden = false;
   const full = AULAS.list.length >= AULA_MAX_DECKS, off = full || AULAS.busy;
   const cards = AULAS.list.map(d=>'<div class="aula-card"><div class="aula-ct"><b>'+escapeHtml(d.title)+'</b>'
     + '<small>'+d.pages+' págs · '+(d.bytes/1048576).toFixed(1)+' MB · último uso '+escapeHtml(invWhen(d.last_used_at))+'</small></div>'
     + '<div class="aula-acts"><button type="button" class="casebtn primary" onclick="aulaOpenDeck(\''+d.id+'\')">Abrir</button>'
     + '<button type="button" class="casebtn" onclick="aulaDelete(\''+d.id+'\')">Borrar</button></div></div>').join('');
-  body.innerHTML = '<p class="aula-note">Las presentaciones se conservan 24 horas desde el último uso, por si se cierra la sala sin querer. Antes de subir un PDF, comprueba que está anonimizado. Máximo 10 MB y 60 páginas; hasta 5 presentaciones por sala.</p>'
+  body.innerHTML = (AULAS.live && AULAS.deck ? '<div class="aula-air"><span>Transmitiendo: '+escapeHtml((AULAS.list.find(x=>x.id===AULAS.deck)||{}).title||'')+'</span><span><button type="button" class="casebtn primary" onclick="aulaBackToAir()">Volver a la presentación</button> <button type="button" class="casebtn" onclick="aulaStop()">Parar</button></span></div>' : '') + '<p class="aula-note">Las presentaciones se conservan 24 horas desde el último uso, por si se cierra la sala sin querer. Antes de subir un PDF, comprueba que está anonimizado. Máximo 10 MB y 60 páginas; hasta 5 presentaciones por sala.</p>'
     + (cards || '<div class="eb-empty">Aún no hay presentaciones en esta sala.</div>')
     + '<div class="aula-up"><label class="casebtn primary'+(off?' is-off':'')+'">Subir PDF<input type="file" accept="application/pdf" hidden'+(off?' disabled':'')+' onchange="aulaUpload(this.files[0]); this.value=\'\'"></label>'
     + '<span id="aulaProg" class="aula-prog" aria-live="polite"></span></div>';
+  aulaMiniRender();
 }
 async function aulaRenderPages(pdf, tier){
   const out = [];
@@ -10451,9 +10467,10 @@ async function aulaOpenDeck(id){
   try{
     showToast('Abriendo la presentación…', 1500);
     const r = await aulaCall({ action:'read', deck:id });
-    AULAS.urls = r.urls; AULAS.deck = id; AULAS.page = 0; AULAS.ink = {}; AULAS.tool = null;
+    AULAS.urls = r.urls; AULAS.deck = id; AULAS.page = 0; AULAS.ink = {}; AULAS.tool = null; AULAS.browse = false;
     aulaCall({ action:'touch', deck:id }).catch(()=>{});
     aulaRender();
+    if(AULAS.live){ aulaSend(); aulaSnapshot(); }
   }catch(e){ showToast('No se pudo abrir: ' + e.message, 5000); }
 }
 function aulaGo(d){
@@ -10702,15 +10719,17 @@ function aulaAudioToggle(){
 // Panel dentro de la presentación: estado del micro y estudiantes conectados para invitar
 function aulaAudioRender(){
   aulaMiniRender();
-  const btn = document.getElementById('aulaAudBtn'), box = document.getElementById('aulaAud');
+  const btn = document.getElementById('aulaAudBtn'), box = document.getElementById('aulaAudFloat');
   if(btn){ btn.classList.toggle('primary', !!AU.on); btn.setAttribute('aria-pressed', AU.on ? 'true' : 'false'); }
   if(!box || role !== 'instructor') return;
-  if(!AU.on){ box.innerHTML = ''; return; }
+  if(!AU.on || !AULAS.deck || AULAS.browse){ box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false; box.classList.toggle('is-folded', !!AULAS.audFold);
+  { const hd = document.querySelector('#aulaOverlay .eb-head'); if(hd) box.style.top = (hd.offsetHeight + 6) + 'px'; }
   const list = AU.order.map(id=>AU.roster[id]).filter(r=>r && r.st !== 'gone');
   const withAudio = list.filter(r=>['listen','hand','talk'].includes(r.st)).length;
   let h = '<div class="aula-aud-head"><span>Audio directo · '+(withAudio===1 ? '1 estudiante' : withAudio+' estudiantes')+' con audio</span>'
     + '<span class="aula-aud-btns"><button type="button" class="casebtn'+(AU.micOn?' primary':'')+'" onclick="auSetMic(true)">Micro abierto</button>'
-    + '<button type="button" class="casebtn'+(!AU.micOn?' primary':'')+'" onclick="auSetMic(false)">Silenciado</button></span></div>';
+    + '<button type="button" class="casebtn'+(!AU.micOn?' primary':'')+'" onclick="auSetMic(false)">Silenciado</button> <button type="button" class="casebtn aula-ic aula-aud-fold" onclick="aulaAudFold()" aria-expanded="'+(AULAS.audFold?'false':'true')+'" title="'+(AULAS.audFold?'Desplegar el audio':'Plegar el audio')+'" aria-label="'+(AULAS.audFold?'Desplegar el audio':'Plegar el audio')+'"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div><div class="aula-aud-body">';
   if(!list.length) h += '<p class="aula-aud-note">No hay estudiantes conectados en la sala.</p>';
   else {
     h += '<ul class="aula-aud-list">';
@@ -10725,23 +10744,25 @@ function aulaAudioRender(){
     h += '</ul>';
     if(list.some(r=>['none','rejected','fail'].includes(r.st))) h += '<button type="button" class="casebtn" onclick="auInviteAll()">Invitar a todos</button>';
   }
+  h += '</div>';
   box.innerHTML = h;
 }
+function aulaAudFold(){ AULAS.audFold = !AULAS.audFold; aulaAudioRender(); }
 // Minimizar: la presentación sigue proyectándose al alumnado y se reduce a una barra
 function aulaMinimize(){
-  if(!AULAS.live) return;
-  aulaPtrOff(); AULAS.tool = null;
+  if(!AULAS.deck) return;
+  aulaPtrOff(); AULAS.tool = null; AULAS.mini = true;
   document.getElementById('aulaOverlay').classList.remove('open');
   aulaMiniRender();
 }
 function aulaMaximize(){
-  AULAS.paused = false;
+  AULAS.paused = false; AULAS.mini = false;
   document.getElementById('aulaOverlay').classList.add('open');
   if(AULAS.live){ aulaSend(); aulaSnapshot(); }
   aulaRender();
 }
 function aulaStop(){
-  AULAS.paused = false;
+  AULAS.paused = false; AULAS.mini = false; AULAS.browse = false;
   if(AULAS.live){ AULAS.live = false; aulaSend(); }
   aulaRender();
 }
@@ -10756,12 +10777,13 @@ function aulaPauseMini(){
 function aulaMiniRender(){
   const el = document.getElementById('aulaMini'); if(!el) return;
   const open = document.getElementById('aulaOverlay').classList.contains('open');
-  const n = AULAS.urls.length, show = AULAS.live && !open && !!AULAS.deck && n > 0;
+  const n = AULAS.urls.length, show = (AULAS.live || AULAS.mini) && !open && !!AULAS.deck && n > 0;
   el.hidden = !show; if(!show) return;
   const d = AULAS.list.find(x=>x.id===AULAS.deck);
   el.classList.toggle('is-audio', !!AU.on);
-  document.getElementById('aulaMiniT').textContent = (AULAS.paused ? 'Alumnado viendo el monitor' : 'Transmitiendo') + (d ? ' · ' + d.title : '');
-  const pb = document.getElementById('aulaMiniPause');
+  document.getElementById('aulaMiniT').textContent = (AULAS.live ? (AULAS.paused ? 'Alumnado viendo el monitor' : 'Transmitiendo') : 'Sin transmitir') + (d ? ' · ' + d.title : '');
+  const pb = document.getElementById('aulaMiniPause'); pb.hidden = !AULAS.live;
+  document.getElementById('aulaMiniStop').textContent = AULAS.live ? 'Parar' : 'Cerrar';
   pb.textContent = AULAS.paused ? 'Volver a la presentación' : 'Mostrar monitor';
   pb.setAttribute('aria-pressed', AULAS.paused ? 'true' : 'false');
   document.getElementById('aulaMiniN').textContent = (AULAS.page+1) + '/' + n;
