@@ -6369,7 +6369,7 @@ let ALL_QUESTIONS = QUESTION_BANK.concat(CPR_BANK);
 const CPR_CTX_LABEL = { general:'Generales', shock:'Ritmo desfibrilable (FV/TVSP)', noshock:'Ritmo no desfibrilable (asistolia/AESP)', post:'Tras la RCE' };
 
 /* Preferencias del docente (menú ⚙). ERC es el algoritmo de RCP por defecto. */
-var SETTINGS_DEF = { showCorrect:false, pauseOnArrest:true, noPulseFlash:true, notifyJoin:true, showFicha:true, showEcg12:true, cprAlgo:'ERC', quizCloseS:3, speed:1, showCase:true, caseButtons:true, ecgName:false, showTemp:true, wake:true, fichaCollapsed:true, beep:false, alarms:false, vol:0.7, alarmDetail:false };
+var SETTINGS_DEF = { fichaCollapsed:false, showCorrect:false, pauseOnArrest:true, noPulseFlash:true, notifyJoin:true, showFicha:true, showEcg12:true, cprAlgo:'ERC', quizCloseS:3, speed:1, showCase:true, caseButtons:true, ecgName:false, showTemp:true, wake:true, fichaCollapsed:true, beep:false, alarms:false, vol:0.7, alarmDetail:false };
 var settings = Object.assign({}, SETTINGS_DEF);
 try{ Object.assign(settings, JSON.parse(localStorage.getItem('monitor-settings')||'{}')); }catch(e){}
 
@@ -9326,7 +9326,7 @@ function rhythmBodyHTML(i){
     + '<p class="ri-src">Basado en las guías ESC/SEC y en las recomendaciones de soporte vital ERC/AHA. Uso formativo.</p>';
 }
 const RI_CHEV = '<svg class="ri-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>';
-let rhythmInfoCollapsed = settings.fichaCollapsed !== false; // según Configuración (contraída por defecto)
+let rhythmInfoCollapsed = settings.fichaCollapsed === true; // según Configuración (desplegada por defecto)
 function toggleRhythmInfo(){
   rhythmInfoCollapsed = !rhythmInfoCollapsed;
   const el = document.getElementById('rhythmInfo');
@@ -9561,7 +9561,7 @@ function refreshSettingsUI(){
   if(typeof refreshAdminUI==='function') refreshAdminUI();
   const vals = Object.assign({}, settings, { theme: getThemePref(),
     cprAlgo, quizCloseS:String(settings.quizCloseS), speed:String(settings.speed),
-    fichaMode: settings.showFicha!==false ? (settings.fichaCollapsed!==false ? 'collapsed':'expanded') : (settings.showEcg12!==false ? 'ecg':'off') });
+    fichaMode: settings.showFicha!==false ? (settings.fichaCollapsed===true ? 'collapsed':'expanded') : (settings.showEcg12!==false ? 'ecg':'off') });
   document.querySelectorAll('#settingsPanel .st-seg[data-set]').forEach(g=>{
     g.querySelectorAll('button').forEach(b=>{ const on = String(vals[g.dataset.set])===b.dataset.v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on?'true':'false'); });
   });
