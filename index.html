@@ -3037,6 +3037,7 @@
   .aula-pick-size{ display:flex; align-items:center; gap:10px; font-size:13px; }
   .aula-pick-size .aula-size{ flex:1; min-width:120px; accent-color:#ff453a; }
   .aula-box:not(.is-deck){ height:auto; max-height:calc(100dvh - 32px); }
+  .aula-box:not(.is-deck){ border:1px solid var(--line); border-top:3px solid var(--ecg); border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,.55); }
   .aula-box:not(.is-deck) .aula-body{ overflow:auto; }
   @media (max-width:760px){ .aula-box:not(.is-deck) .aula-note{ font-size:13px; } .aula-box:not(.is-deck) .aula-body{ padding:10px 12px; } }
   .aula-mini{ border-color:var(--ecg, #13a05a); box-shadow:0 0 0 1px var(--ecg, #13a05a), 0 6px 20px rgba(0,0,0,.25); }
@@ -10395,7 +10396,7 @@ function aulaRender(){
     aulaInkMount(); aulaAudioRender(); aulaMiniRender();
     return;
   }
-  back.hidden = true; title.textContent = 'Aula · presentaciones'; title.hidden = false;
+  back.hidden = true; title.textContent = 'Aula'; title.hidden = false;
   const full = AULAS.list.length >= AULA_MAX_DECKS, off = full || AULAS.busy;
   const cards = AULAS.list.map(d=>'<div class="aula-card"><div class="aula-ct"><b>'+escapeHtml(d.title)+'</b>'
     + '<small>'+d.pages+' págs · '+(d.bytes/1048576).toFixed(1)+' MB · último uso '+escapeHtml(invWhen(d.last_used_at))+'</small></div>'
