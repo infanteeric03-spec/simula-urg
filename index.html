@@ -2996,8 +2996,14 @@
   .room-fav[hidden]{ display:none; }
   .room-code-wrap{ flex:1; position:relative; min-width:0; }
   .room-code-wrap input{ width:100% !important; box-sizing:border-box; padding-left:52px !important; padding-right:52px !important; }
-  .room-code-wrap .room-fav{ position:absolute; right:6px; top:50%; transform:translateY(-50%); width:38px; height:38px; border:none; border-radius:10px; background:transparent; }
+  .room-code-wrap .room-fav{ position:absolute; right:6px; top:40%; transform:translateY(-50%); width:38px; height:38px; border:none; border-radius:10px; background:transparent; }
   .room-code-wrap .room-fav svg{ width:22px; height:22px; }
+  .room-code-wrap .room-rnd{ position:absolute; left:6px; top:40%; transform:translateY(-50%); width:38px; height:38px; border:none; border-radius:10px; background:transparent; color:inherit; padding:0; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+  .room-code-wrap .room-rnd svg{ width:22px; height:22px; }
+  .room-code-wrap .room-rnd[hidden]{ display:none; }
+  .room-code-wrap .room-side{ position:absolute; right:6px; top:4px; bottom:4px; display:flex; flex-direction:column; justify-content:space-between; align-items:center; }
+  .room-code-wrap .room-side .room-fav, .room-code-wrap .room-side .room-rnd{ position:static; transform:none; width:28px; height:28px; border-radius:8px; }
+  .room-code-wrap .room-side .room-fav svg, .room-code-wrap .room-side .room-rnd svg{ width:18px; height:18px; }
   .rc-eye{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:26px; margin-left:8px; vertical-align:middle; border:1px solid var(--line); border-radius:8px; background:transparent; color:inherit; cursor:pointer; padding:0; }
   .rc-eye svg{ width:18px; height:18px; }
   .rc-eye[hidden]{ display:none; }
@@ -3792,7 +3798,8 @@
       <div class="code-row">
         <div class="room-code-wrap">
           <input id="roomCodeInput" maxlength="4" inputmode="numeric" enterkeyhint="go" placeholder="0000" aria-label="Código de sala" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); connectRoom(); }">
-          <button type="button" class="room-fav" id="roomFavBtn" hidden aria-pressed="false" aria-label="Marcar esta sala como favorita" onclick="roomFavTap()"></button>
+          <div class="room-side"><button type="button" class="room-rnd" id="roomRndBtn" hidden aria-label="Generar un código aleatorio" title="Código aleatorio" onclick="roomRandomTap()"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+          <button type="button" class="room-fav" id="roomFavBtn" hidden aria-pressed="false" aria-label="Marcar esta sala como favorita" onclick="roomFavTap()"></button></div>
         </div>
       </div>
       <div class="room-adm" id="roomAdmRow" hidden><input type="checkbox" id="roomAdmChk" aria-label="Pedir admisión para entrar" onchange="salaAdmSetVal(this.checked)"><span class="ra-t"><label for="roomAdmChk"><b>Pedir admisión para entrar</b></label><button type="button" class="ra-i" aria-expanded="false" aria-controls="roomAdmTip" aria-label="Más información" onclick="roomAdmTip(this)">i</button><small id="roomAdmTip" hidden>Tú aceptas a cada estudiante que pide entrar. Desactivado, entran directamente con el código.</small></span></div>
@@ -3804,15 +3811,15 @@
       <button class="gate-btn" id="btnConnect" onclick="connectRoom()">Conectar</button>
       <button class="gate-btn secondary" id="btnWaitRetry" type="button" style="display:none" onclick="joinWaitRetry()">Cancelar y volver a pedir</button>
       <div class="res-list res-quick" id="resQuick" hidden></div>
-      <button class="gate-btn secondary" id="btnResToggle" type="button" hidden onclick="resToggle()">Reservar sala e histórico</button>
+      <button class="gate-btn secondary" id="btnResToggle" type="button" hidden onclick="resToggle()">Histórico y reserva de sala</button>
       <div class="res-panel" id="resPanel" hidden>
+        <label>Últimas salas usadas</label>
+        <div class="res-list" id="resHist"></div>
         <label for="resWhen">Inicio de la sesión</label>
         <input type="datetime-local" id="resWhen" aria-label="Fecha y hora de inicio">
         <small>Se reserva el código de arriba (con la opción de admisión elegida). Hasta esa hora, quien intente entrar verá una cuenta atrás.</small>
         <button class="gate-btn" type="button" onclick="resSave()">Reservar sala</button>
         <div class="res-list" id="resList"></div>
-        <label>Últimas salas usadas</label>
-        <div class="res-list" id="resHist"></div>
       </div>
       <button class="gate-btn secondary" onclick="backToRoleStep()">← Cambiar rol</button>
       <div class="gate-status" id="gateStatus"></div>
@@ -5063,6 +5070,7 @@ document.addEventListener('visibilitychange', ()=>{
 });
 setTimeout(()=>{ try{ gateWhoRefresh(); }catch(e){} }, 400);
 function roomFavRefresh(){
+  const rb = document.getElementById('roomRndBtn'); if(rb) rb.hidden = selectedRole !== 'instructor';
   const btn = document.getElementById('roomFavBtn'); if(!btn) return;
   const code = (document.getElementById('roomCodeInput') || {}).value || '';
   const show = selectedRole === 'instructor' && /^\d{4}$/.test(code.trim());
@@ -5082,6 +5090,20 @@ async function roomFavTap(){
     await salaHistFav(code, true, arr);
   }
   roomFavRefresh();
+}
+let _roomGenId = 0;
+function rand4(){ return String(Math.floor(1000+Math.random()*9000)); }
+function roomSetCode(code){ const ri = document.getElementById('roomCodeInput'); if(!ri) return; ri.value = code; ri.dispatchEvent(new Event('input', { bubbles:true })); }
+// Icono de aleatorio: genera un código nuevo aunque haya favoritas
+function roomRandomTap(){ _roomGenId++; roomSetCode(rand4()); }
+// Al entrar como docente: favorita más reciente si la hay; si no, aleatorio
+async function roomAutoCode(){
+  const id = ++_roomGenId; roomSetCode(rand4());
+  try{
+    const got = await salaHistRpc('sala_hist_list');
+    const favs = (Array.isArray(got) ? got : []).filter(x=>x.fav).sort((a,b)=>String(b.used_at).localeCompare(String(a.used_at)));
+    if(favs.length && id === _roomGenId && selectedRole === 'instructor') roomSetCode(favs[0].code);
+  }catch(e){}
 }
 setTimeout(()=>{ const ri = document.getElementById('roomCodeInput'); if(ri) ri.addEventListener('input', roomFavRefresh); }, 0);
 // El código puede cambiar sin evento de teclado (código generado al entrar): se vigila el valor y el rol
@@ -5849,7 +5871,7 @@ function selectRole(r){
   if(r==='instructor'){
     document.getElementById('roomStepTitle').textContent = 'Crea una sala';
     document.getElementById('roomStepDesc').textContent = 'Comparte este código con los dispositivos de los estudiantes. Puedes cambiarlo si quieres.';
-    input.value = String(Math.floor(1000+Math.random()*9000));
+    roomAutoCode();
   } else {
     document.getElementById('roomStepTitle').textContent = 'Únete a una sala';
     document.getElementById('roomStepDesc').textContent = 'Escribe el código de 4 cifras que te ha dado quien dirige la sesión.';
