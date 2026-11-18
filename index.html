@@ -2047,9 +2047,10 @@
   .au-ptt.busy:not(.on){ border-color:#f5c542; color:#f5c542; }
   .au-ptt:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
   /* ---------- Búsqueda (lupa) en el menú y en el manual ---------- */
-  .st-head .st-find{ margin-left:auto; margin-right:8px; display:inline-flex; align-items:center; justify-content:center; }
-  .st-head .st-anchor{ margin-left:auto; margin-right:0; display:inline-flex; align-items:center; justify-content:center; }
-  .st-head .st-anchor + .st-find{ margin-left:0; }
+  .st-head > .st-x{ width:32px; height:32px; flex:none; margin:0; display:inline-flex; align-items:center; justify-content:center; }
+  .st-head > .st-x svg{ width:18px; height:18px; }
+  .st-head .st-anchor{ margin-left:auto; margin-right:6px; }
+  .st-head .st-find{ margin-left:0; margin-right:6px; }
   .st-head .st-anchor.on{ color:var(--ecg); border-color:var(--ecg); }
   .st-find[aria-expanded="true"], .mn-find[aria-expanded="true"]{ color:var(--ecg); border-color:var(--ecg); }
   .mn-find{ display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -4614,6 +4615,7 @@
       <button type="button" class="casebtn aula-ic" id="aulaBack" onclick="aulaShowList()" title="Presentaciones" aria-label="Presentaciones" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M2.5 5.5a1.5 1.5 0 0 1 1.5-1.5h3.2l1.6 1.8h7.2a1.5 1.5 0 0 1 1.5 1.5v7.7a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5z"/></g></svg></button>
       <button type="button" class="casebtn aula-ic" id="aulaXmitBtn" onclick="aulaToggleLive()" aria-pressed="false" title="Transmitir" aria-label="Transmitir" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="1.6" fill="currentColor"/><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.3 6.3a5 5 0 0 0 0 7.4M13.7 6.3a5 5 0 0 1 0 7.4M3.8 3.8a8.6 8.6 0 0 0 0 12.4M16.2 3.8a8.6 8.6 0 0 1 0 12.4"/></g></svg></button>
       <button type="button" class="casebtn aula-ic" id="aulaAudBtn" onclick="aulaAudioToggle()" aria-pressed="false" title="Audio directo" aria-label="Audio directo" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></g></svg></button>
+      <button type="button" class="casebtn aula-ic" id="aulaSndBtn" onclick="sndMuteToggle()" aria-pressed="false" title="Silenciar sonidos durante la sesión" aria-label="Silenciar sonidos durante la sesión"><svg class="snd-on-ic" viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z"/><path d="M13.5 7.2a4 4 0 0 1 0 5.6M15.8 5a7 7 0 0 1 0 10"/></g></svg><svg class="snd-off-ic" viewBox="0 0 20 20" aria-hidden="true" hidden><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z"/><path d="M13.5 7.5l4.5 5M18 7.5l-4.5 5"/></g></svg></button>
       <button type="button" class="st-x aula-ic" id="aulaMinBtn" onclick="aulaMinimize()" title="Minimizar la presentación" aria-label="Minimizar la presentación" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="4" width="14" height="11" rx="1.6"/></g><rect x="10.5" y="9.5" width="5" height="4" rx="0.8" fill="currentColor"/></svg></button>
       <button type="button" class="st-x" onclick="closeAula()" aria-label="Cerrar el aula">✕</button>
     </div>
@@ -5974,7 +5976,7 @@ async function connectRoom(){
   // presence: cada dispositivo se anuncia con su rol, así el docente sabe cuántos estudiantes hay
   const presenceKey = role+'-'+Math.random().toString(36).slice(2,10); connectRoom._pk = presenceKey;
   channel = supa.channel('monitor-sala-'+roomCode, { config: { broadcast: { self:false }, presence: { key: presenceKey } } });
-  if(role==='instructor') channel.on('presence', { event:'sync' }, ()=>{ updateStudentCount(); auRosterSync(); });
+  if(role==='instructor') channel.on('presence', { event:'sync' }, ()=>{ updateStudentCount(); auRosterSync(); if(sndMuted) sndBroadcast(); });
 
   if(role==='monitor'){
     channel.on('broadcast', {event:'state'}, (msg)=> applyRemoteState(msg.payload));
@@ -5992,6 +5994,7 @@ async function connectRoom(){
     channel.on('broadcast', {event:'student_prefs'}, (msg)=> applyStudentPrefs(msg.payload));
     channel.on('broadcast', {event:'pcr_state'}, (msg)=> applyRemotePcr(msg.payload));
     channel.on('broadcast', {event:'alarm_silence'}, (msg)=> setAlarmSilence(msg.payload && msg.payload.s || 0, false));
+    channel.on('broadcast', {event:'snd_mute'}, (msg)=>{ sndMuted = !!(msg.payload && msg.payload.m); aulaSndRefresh(); });
   } else {
     channel.on('broadcast', {event:'ecg_ink_s'}, (msg)=> onStudentInk(msg.payload));    // trazos y zoom del estudiante autorizado
     channel.on('broadcast', {event:'ecg_view_s'}, (msg)=> onStudentView(msg.payload));
@@ -10403,6 +10406,7 @@ function aulaShowList(){
 }
 function aulaBackToAir(){ AULAS.browse = false; aulaRender(); }
 function aulaRender(){
+  aulaSndRefresh();
   const body = document.getElementById('aulaBody'), back = document.getElementById('aulaBack'), title = document.getElementById('aulaTitle');
   if(!body) return;
   const boxEl = document.querySelector('.aula-box'); if(boxEl) boxEl.classList.toggle('is-deck', !!AULAS.deck);
@@ -11474,7 +11478,24 @@ function tone(freq, start, dur, peak, type){
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
   o.connect(g); g.connect(audioOut); o.start(start); o.stop(start + dur + 0.02);
 }
-function soundReady(){ return audioCtx && audioCtx.state==='running' && !document.hidden; }
+var sndMuted = (()=>{ try{ return sessionStorage.getItem('monitor-snd-mute')==='1'; }catch(e){ return false; } })();
+function soundReady(){ return audioCtx && audioCtx.state==='running' && !document.hidden && !sndMuted; }
+// Docente: silencia pitidos y alarmas en este dispositivo durante la sesión (no se guarda al cerrar la pestaña)
+function sndMuteToggle(){
+  sndMuted = !sndMuted;
+  try{ sessionStorage.setItem('monitor-snd-mute', sndMuted ? '1' : '0'); }catch(e){}
+  aulaSndRefresh(); sndBroadcast();
+  showToast(sndMuted ? 'Sonidos silenciados en este dispositivo y en los alumnos.' : 'Sonidos activados.');
+}
+function sndBroadcast(){ if(role==='instructor' && channel) channel.send({ type:'broadcast', event:'snd_mute', payload:{ m: !!sndMuted } }); }
+function aulaSndRefresh(){
+  const b = document.getElementById('aulaSndBtn'); if(!b) return;
+  b.classList.toggle('on', sndMuted); b.setAttribute('aria-pressed', sndMuted ? 'true' : 'false');
+  const t = sndMuted ? 'Activar sonidos' : 'Silenciar sonidos durante la sesión';
+  b.title = t; b.setAttribute('aria-label', t);
+  const on = b.querySelector('.snd-on-ic'), off = b.querySelector('.snd-off-ic');
+  if(on) on.hidden = sndMuted; if(off) off.hidden = !sndMuted;
+}
 function monitorBeep(){
   if(!settings.beep || !soundReady()) return;
   // tono según la SpO₂: ~880 Hz al 100 %, más grave al desaturar
