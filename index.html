@@ -2984,6 +2984,10 @@
   .room-fav svg{ width:22px; height:22px; }
   .room-fav.on{ color:var(--ecg); border-color:var(--ecg); }
   .room-fav[hidden]{ display:none; }
+  .room-code-wrap{ flex:1; position:relative; min-width:0; }
+  .room-code-wrap input{ width:100% !important; box-sizing:border-box; padding-left:52px !important; padding-right:52px !important; }
+  .room-code-wrap .room-fav{ position:absolute; right:6px; top:50%; transform:translateY(-50%); width:38px; height:38px; border:none; border-radius:10px; background:transparent; }
+  .room-code-wrap .room-fav svg{ width:22px; height:22px; }
   .rc-eye{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:26px; margin-left:8px; vertical-align:middle; border:1px solid var(--line); border-radius:8px; background:transparent; color:inherit; cursor:pointer; padding:0; }
   .rc-eye svg{ width:18px; height:18px; }
   .rc-eye[hidden]{ display:none; }
@@ -3775,8 +3779,10 @@
       <h2 id="roomStepTitle">Código de sala</h2>
       <p id="roomStepDesc">Comparte este código con el otro dispositivo para conectarlo al mismo monitor.</p>
       <div class="code-row">
-        <input id="roomCodeInput" maxlength="4" inputmode="numeric" enterkeyhint="go" placeholder="0000" aria-label="Código de sala" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); connectRoom(); }">
-        <button type="button" class="room-fav" id="roomFavBtn" hidden aria-pressed="false" aria-label="Marcar esta sala como favorita" onclick="roomFavTap()"></button>
+        <div class="room-code-wrap">
+          <input id="roomCodeInput" maxlength="4" inputmode="numeric" enterkeyhint="go" placeholder="0000" aria-label="Código de sala" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); connectRoom(); }">
+          <button type="button" class="room-fav" id="roomFavBtn" hidden aria-pressed="false" aria-label="Marcar esta sala como favorita" onclick="roomFavTap()"></button>
+        </div>
       </div>
       <div class="room-adm" id="roomAdmRow" hidden><input type="checkbox" id="roomAdmChk" aria-label="Pedir admisión para entrar" onchange="salaAdmSetVal(this.checked)"><span class="ra-t"><label for="roomAdmChk"><b>Pedir admisión para entrar</b></label><button type="button" class="ra-i" aria-expanded="false" aria-controls="roomAdmTip" aria-label="Más información" onclick="roomAdmTip(this)">i</button><small id="roomAdmTip" hidden>Tú aceptas a cada estudiante que pide entrar. Desactivado, entran directamente con el código.</small></span></div>
       <div class="stu-name-row" id="stuNameRow" hidden>
@@ -5024,8 +5030,25 @@ async function gateWhoTap(){
     invSave(''); b.hidden = true; showToast('Permiso retirado de este dispositivo.'); backToRoleStep();
   }
 }
-setInterval(()=>{ try{ collabPendRefresh(); }catch(e){} }, 60000);
+setInterval(()=>{ try{ collabPendRefresh(); }catch(e){} }, 20000);
 setTimeout(()=>{ try{ collabPendRefresh(); }catch(e){} }, 2000);
+// Configuración › Sala: el estado de las colaboraciones (pendiente / aceptada) se actualiza solo mientras la pestaña está visible.
+// Solo se vuelve a pintar la lista si cambia algo, para no interrumpir notas abiertas.
+let _collabSig = null;
+async function collabSettingsPoll(){
+  const box = document.getElementById('stHistList'); if(!box || !box.offsetParent) return;
+  const got = await salaHistRpc('sala_hist_list'); const list = Array.isArray(got) ? got : [];
+  const favs = list.filter(x=>x.fav);
+  await Promise.all(favs.map(x=>salaCollabLoad(x.code).catch(()=>{})));
+  const sig = JSON.stringify(favs.map(x=>[x.code, SALA_COLLAB_DATA[x.code] || []]));
+  if(sig !== _collabSig){ _collabSig = sig; stHistRender(box, list, 'switch'); }
+}
+setInterval(()=>{ try{ collabSettingsPoll().catch(()=>{}); }catch(e){} }, 15000);
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible') return;
+  try{ collabPendRefresh(); }catch(e){}
+  try{ collabSettingsPoll().catch(()=>{}); }catch(e){}
+});
 setTimeout(()=>{ try{ gateWhoRefresh(); }catch(e){} }, 400);
 function roomFavRefresh(){
   const btn = document.getElementById('roomFavBtn'); if(!btn) return;
@@ -5049,6 +5072,12 @@ async function roomFavTap(){
   roomFavRefresh();
 }
 setTimeout(()=>{ const ri = document.getElementById('roomCodeInput'); if(ri) ri.addEventListener('input', roomFavRefresh); }, 0);
+// El código puede cambiar sin evento de teclado (código generado al entrar): se vigila el valor y el rol
+let _roomFavKey = null;
+setInterval(()=>{
+  const ri = document.getElementById('roomCodeInput'); const k = selectedRole + '|' + ((ri && ri.value) || '').trim();
+  if(k !== _roomFavKey){ _roomFavKey = k; roomFavRefresh(); }
+}, 400);
 async function invSubmit(){
   const i = document.getElementById('invCodeInput'), st = document.getElementById('invStatus'), code = i.value.trim().toUpperCase();
   if(code.length < 4){ st.textContent = 'Escribe los 4 caracteres de tu invitación.'; st.classList.add('bad'); return; }
