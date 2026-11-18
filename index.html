@@ -2972,8 +2972,12 @@
   .sh-ic.sh-collab.has-collab{ color:var(--ecg, #13a05a); border-color:var(--ecg, #13a05a); }
   .sh-note.sh-collab-panel{ margin:6px 0 14px; }
   .sh-clear-row{ display:flex; justify-content:flex-end; margin-top:8px; }
-  .rc-code{ margin-top:12px; display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
-  .pend{ position:relative; }
+  .rc-eye{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:26px; margin-left:8px; vertical-align:middle; border:1px solid var(--line); border-radius:8px; background:transparent; color:inherit; cursor:pointer; padding:0; }
+  .rc-eye svg{ width:18px; height:18px; }
+  .rc-eye[hidden]{ display:none; }
+  .rc-code-txt{ margin-left:8px; font-size:16px; letter-spacing:.14em; font-weight:700; vertical-align:middle; }
+  .rc-code-txt[hidden]{ display:none; }
+  #titleRole.pend{ position:relative; }
   .pend::after{ content:''; position:absolute; top:-2px; right:-3px; width:9px; height:9px; border-radius:50%; background:#e53935; box-shadow:0 0 0 2px var(--panel,#fff); pointer-events:none; }
   .rc-extra{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
   .rc-pend{ display:flex; flex-direction:column; gap:6px; }
@@ -4901,22 +4905,12 @@ let COLLAB_PENDING = 0;
 async function adminInviteCode(){
   try{ const cl = supaClient(); const pin = adminPin(); if(!cl || !pin) return ''; const { data } = await cl.rpc('admin_invite_get', { p_pin:pin }); return data || ''; }catch(e){ return ''; }
 }
+const EYE_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 10s3-5.4 8.4-5.4S18.4 10 18.4 10s-3 5.4-8.4 5.4S1.6 10 1.6 10z"/><circle cx="10" cy="10" r="2.5"/></svg>';
+function roleCardCode(isAdmin){ return isAdmin ? adminInviteCode() : Promise.resolve(invCode() || ''); }
 function buildRoleCardExtras(isAdmin){
-  const wrap = document.createElement('div'); wrap.className = 'rc-extra';
-  const codeBox = document.createElement('div'); codeBox.className = 'rc-code'; codeBox.hidden = true;
-  const lbl = document.createElement('small'); lbl.textContent = 'Código de invitación';
-  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'rc-code-btn';
-  btn.textContent = '****'; btn.setAttribute('aria-label', 'Mostrar el código de invitación durante 5 segundos');
-  let code = '', t = 0;
-  btn.onclick = ()=>{ if(!code) return; btn.textContent = code; clearTimeout(t); t = setTimeout(()=>{ btn.textContent = '****'; }, 5000); };
-  codeBox.appendChild(lbl); codeBox.appendChild(btn); wrap.appendChild(codeBox);
-  const pendBox = document.createElement('div'); pendBox.className = 'rc-pend'; pendBox.hidden = true; wrap.appendChild(pendBox);
-  (async ()=>{
-    code = isAdmin ? await adminInviteCode() : (invCode() || '');
-    codeBox.hidden = !code;
-    await renderCollabPending(pendBox);
-  })();
-  return wrap;
+  const pendBox = document.createElement('div'); pendBox.className = 'rc-pend'; pendBox.hidden = true;
+  renderCollabPending(pendBox);
+  return pendBox;
 }
 async function renderCollabPending(box){
   const list = await salaHistRpc('sala_collab_pending');
@@ -4945,9 +4939,19 @@ async function collabPendRefresh(){
   const list = await salaHistRpc('sala_collab_pending'); COLLAB_PENDING = Array.isArray(list) ? list.length : 0; collabDotApply();
 }
 function withRoleExtras(isAdmin, p){
-  const ex = buildRoleCardExtras(isAdmin);
-  const at = document.getElementById('adText'); if(at) at.insertAdjacentElement('afterend', ex);
-  return p.then(r=>{ ex.remove(); return r; });
+  const pendBox = buildRoleCardExtras(isAdmin);
+  const at = document.getElementById('adText'), adT = document.getElementById('adTitle');
+  if(at) at.insertAdjacentElement('afterend', pendBox);
+  // ojo junto al título: al pulsarlo aparece el código; se oculta al volver a pulsar o a los 5 segundos
+  const eye = document.createElement('button'); eye.type = 'button'; eye.className = 'rc-eye'; eye.hidden = true;
+  eye.setAttribute('aria-label', 'Mostrar u ocultar el código de invitación'); eye.setAttribute('aria-pressed', 'false'); eye.innerHTML = EYE_ICON;
+  const codeSp = document.createElement('span'); codeSp.className = 'rc-code-txt'; codeSp.hidden = true;
+  let code = '', t = 0;
+  const hide = ()=>{ clearTimeout(t); codeSp.hidden = true; codeSp.textContent = ''; eye.setAttribute('aria-pressed', 'false'); };
+  eye.onclick = ()=>{ if(!code) return; if(!codeSp.hidden){ hide(); return; } codeSp.textContent = code; codeSp.hidden = false; eye.setAttribute('aria-pressed', 'true'); clearTimeout(t); t = setTimeout(hide, 5000); };
+  if(adT){ adT.appendChild(eye); adT.appendChild(codeSp); }
+  roleCardCode(isAdmin).then(c=>{ code = c || ''; eye.hidden = !code; });
+  return p.then(r=>{ clearTimeout(t); pendBox.remove(); eye.remove(); codeSp.remove(); return r; });
 }
 async function roleChipTap(){
   if(role!=='instructor') return;
@@ -5141,7 +5145,7 @@ function stHistRender(box, list, mode){
     nb.innerHTML = shIcon('doc', !!x.note);
     nb.onclick = ()=>{ if(SALA_HIST_OPEN.has(x.code)) SALA_HIST_OPEN.delete(x.code); else SALA_HIST_OPEN.add(x.code); stHistFill(); };
     row.appendChild(nb);
-    if(mode === 'switch'){
+    if(mode === 'switch' || mode === 'copy'){
       const openC = SALA_COLLAB_OPEN.has(x.code), hasCol = !!x.fav && (SALA_COLLAB_DATA[x.code] || []).length > 0;
       const cl = document.createElement('button'); cl.type = 'button';
       cl.className = 'sh-ic sh-collab' + (openC ? ' on' : '') + (hasCol ? ' has-collab' : '');
@@ -5163,7 +5167,7 @@ function stHistRender(box, list, mode){
       btns.appendChild(sv);
       np.appendChild(ta); np.appendChild(btns); box.appendChild(np);
     }
-    if(mode === 'switch' && x.fav){
+    if((mode === 'switch' || mode === 'copy') && x.fav){
       const open = SALA_COLLAB_OPEN.has(x.code);
       if(open){
         const cp = document.createElement('div'); cp.className = 'sh-note sh-collab-panel';
