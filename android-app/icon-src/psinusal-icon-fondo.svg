@@ -2,5 +2,5 @@
   <path d="M214 360 h84 l16 50 h-116z" fill="#0f5c4a" stroke="#0f5c4a" stroke-width="8" stroke-linejoin="round"/>
   <rect x="168" y="408" width="176" height="18" rx="9" fill="#0f5c4a"/>
   <rect x="88" y="108" width="336" height="228" rx="18" fill="#0a3a2f"/>
-  <path d="M70 318 H128 q9 -16 18 0 H176 l3 8 l3 -92 l8 110 l6 -26 H246 q14 -24 28 0 H442" fill="none" stroke="#4c967d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M70 318 H168 q9 -16 18 0 H216 l3 8 l3 -92 l8 110 l6 -26 H286 q14 -24 28 0 H442" fill="none" stroke="#4c967d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
   <text x="256" y="300" text-anchor="middle" font-family="Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-weight="800" font-size="210" letter-spacing="-8" stroke="#06241d" stroke-opacity=".35" stroke-width="10" paint-order="stroke"><tspan fill="#ffffff">P</tspan><tspan fill="#a8f0cd">S</tspan></text></svg>
