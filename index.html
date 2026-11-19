@@ -1336,6 +1336,7 @@
   .waves-remote-btn:hover, .waves-remote-btn:focus-visible{ opacity:1; background:rgba(5,8,10,.85); }
   .waves-remote-btn.on{ opacity:1; color:#35ff6b; border-color:#35ff6b; background:rgba(53,255,107,.12); box-shadow:0 0 8px rgba(53,255,107,.35); }
   body.role-monitor .waves-remote-btn{ display:none; }
+  body.role-instructor:not(.has-students) .waves-remote-btn{ display:none !important; }
   body .waves.expanded .waves-remote-btn{ width:min(36px,9cqh); height:min(36px,9cqh); right:calc(12px + min(36px,9cqh)); bottom:6px; }
   body.role-instructor .waves.expanded .wx-vitals{ padding-right:calc(2*min(36px,9cqh) + 6px + 1.5cqw); }
 
@@ -3194,6 +3195,14 @@
   :is(body.role-monitor,body.ivx):not(.snd-on) .waves .wave-clock{ right:40px !important; }
   :is(body.role-monitor,body.ivx) .waves > .waves-expand-btn, :is(body.role-monitor,body.ivx) .waves > .alarm-btn{ top:3px !important; bottom:auto !important; width:28px; height:24px; min-width:28px; }
   :is(body.role-monitor,body.ivx) .waves > .waves-expand-btn{ right:5px !important; }
+  @media (max-width:760px) and (orientation:portrait){
+    body.role-instructor:not(.ivx) .waves > .waves-expand-btn, body.role-instructor:not(.ivx) .waves > .waves-remote-btn{ top:6px !important; bottom:auto !important; }
+    /* la hora va a la altura de los botones; sin alumnos ocupa el hueco del icono de alumnos */
+    body.role-instructor:not(.ivx) .waves .wave-clock{ top:14px !important; right:42px !important; }
+    body.role-instructor:not(.ivx).has-students .waves .wave-clock{ right:78px !important; }
+    body.role-instructor:not(.ivx) .waves.expanded .wave-clock{ top:18px !important; right:calc(12px + min(36px,9cqh)) !important; }
+    body.role-instructor:not(.ivx).has-students .waves.expanded .wave-clock{ right:calc(18px + 2 * min(36px,9cqh)) !important; }
+  }
   :is(body.role-monitor,body.ivx) .waves > .alarm-btn{ right:37px !important; }
   :is(body.role-monitor,body.ivx) .waves > .alarm-btn .al-msg{ display:none; }
   /* silenciadas: la campana muestra la cuenta atrás (crece hacia la izquierda) y la hora se aparta */
@@ -9811,6 +9820,7 @@ function updateStudentCount(){
     stuSync(st);
   }catch(e){ studentCount = 0; }
   try{ e12StuRender(); }catch(e){}
+  document.body.classList.toggle('has-students', studentCount > 0);
   const txt = studentCount===1 ? '1 estudiante conectado' : studentCount+' estudiantes conectados';
   // aviso discreto al entrar un estudiante (no en el primer recuento al abrir la sala)
   if(updateStudentCount._prev!==undefined && studentCount > updateStudentCount._prev && settings.notifyJoin!==false){
