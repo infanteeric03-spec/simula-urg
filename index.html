@@ -5536,7 +5536,7 @@ function stHistRender(box, list, mode){
     sb.title = x.fav ? 'Quitar de favoritas' : 'Marcar como favorita';
     sb.innerHTML = shIcon('star', !!x.fav);
     sb.onclick = ()=> salaHistFav(x.code, !x.fav, list);
-    if(!x.fav && COLLAB_MINE.has(x.code)){ histOff(sb, 'Colaboras en esta sala. Solo quien la creó puede marcarla como favorita.'); }
+    if(!x.fav && COLLAB_MINE.has(x.code)){ histOff(sb, 'Colaboras en esta sala. La favorita protege sus documentos, así que solo quien la creó puede marcarla.'); }
     row.appendChild(sb);
     const nb = document.createElement('button'); nb.type = 'button';
     nb.className = 'sh-ic sh-doc' + (x.note ? ' has-note' : '') + (SALA_HIST_OPEN.has(x.code) ? ' on' : '');
