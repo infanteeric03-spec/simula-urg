@@ -2393,7 +2393,8 @@
   .pg-tip{ position:fixed; right:14px; bottom:58px; left:14px; max-width:420px; margin-left:auto; z-index:61; text-align:left; background:var(--c-card, #fff); border:1px solid var(--c-line, #dfe5e3); border-radius:14px; padding:12px 14px; font-size:13.5px; line-height:1.45; color:var(--c-ink, #2b3936); box-shadow:0 8px 28px rgba(0,0,0,.16); }
   .pg-tip[hidden]{ display:none; } .pg-tip > b{ color:var(--c-pri, #0f5c4a); } .pg-tip ul{ margin:6px 0 0; padding-left:18px; } .pg-tip li{ margin:4px 0; } .pg-tip li b{ color:var(--c-pri, #0f5c4a); }
   .pg-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; vertical-align:middle; margin-right:2px; }
-  details.rh-box{ text-align:left; border:1px solid var(--c-line, #dfe5e3); border-radius:12px; padding:0 12px; margin:4px 0 12px; background:var(--c-card, #fff); }
+  details.rh-box{ text-align:left; border:1px solid var(--c-line, #dfe5e3); border-radius:12px; padding:0 12px; margin:4px 0 12px; }
+  details.rh-box[open]{ padding-bottom:12px; background:var(--c-card, #fff); }
   details.rh-box summary{ cursor:pointer; padding:11px 0; font-weight:700; font-size:14px; list-style:none; display:flex; justify-content:space-between; gap:8px; }
   details.rh-box summary::-webkit-details-marker{ display:none; }
   details.rh-box summary::after{ content:'▾'; color:var(--c-dim, #6b7a75); } details.rh-box[open] summary::after{ content:'▴'; }
@@ -5343,6 +5344,7 @@ function roomFavRefresh(){
   const show = selectedRole === 'instructor' && /^\d{4}$/.test(code.trim());
   btn.hidden = !show; if(!show) return;
   salaHistRpc('sala_hist_list').then(list=>{
+    if(((document.getElementById('roomCodeInput') || {}).value || '').trim() !== code.trim()) return;   // el código cambió mientras tanto
     const isF = Array.isArray(list) && list.some(x=>x.code === code.trim() && x.fav);
     btn.classList.toggle('on', isF); btn.setAttribute('aria-pressed', String(isF)); btn.innerHTML = shIcon('star', isF);
   });
@@ -5680,7 +5682,7 @@ async function stHistFill(){
 }
 function stHistRender(box, list, mode){
   box.innerHTML = '';
-  if(box.id==='resHist'){ const n = document.getElementById('resHistN'); if(n) n.textContent = list.length ? '('+list.length+')' : ''; }
+  if(box.id==='resHist'){ const n = document.getElementById('resHistN'); if(n) n.textContent = list.length ? '('+list.length+')' : ''; try{ roomFavRefresh(); }catch(e){} }
   if(!list.length){
     const p = document.createElement('small'); p.textContent = 'Aún no has usado ninguna sala.'; box.appendChild(p); return;
   }
