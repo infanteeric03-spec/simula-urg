@@ -15535,6 +15535,18 @@ if('serviceWorker' in navigator && !isApk()){
   window.setPadBig = m=>{ P.b = ['slide','joy','btn'].includes(m) ? m : 'btn'; save(); syncUI(); update(); };
   window.setPadVib = v=>{ P.v = v ? 1 : 0; save(); syncUI(); if(P.v) buzz(); };
   window.setPadSens = v=>{ P.s = Math.min(10, Math.max(1, Math.round(+v)||5)); save(); syncUI(); };
+  // «deslizar hacia abajo» en la página: ya no recarga (ni vuelve a elegir rol); solo repinta las constantes y reajusta la vista
+  window.addEventListener('monitor-soft-refresh', ()=>{ paint(); requestAnimationFrame(fit); });
+  {
+    let y0 = null, pulling = false;
+    const innerScrolled = el => { for(let e = el; e && e !== document.body; e = e.parentElement){ if(e.scrollTop > 0) return true; } return false; };
+    document.addEventListener('touchstart', e=>{ y0 = (e.touches.length === 1 && window.scrollY <= 0 && !innerScrolled(e.target)) ? e.touches[0].clientY : null; pulling = false; }, { passive:true });
+    document.addEventListener('touchmove', e=>{
+      if(y0 == null) return;
+      if(e.touches[0].clientY - y0 > 0 && window.scrollY <= 0 && !innerScrolled(e.target)){ if(e.touches[0].clientY - y0 > 40) pulling = true; if(e.cancelable) e.preventDefault(); }   // se corta el gesto nativo de recargar
+    }, { passive:false });
+    document.addEventListener('touchend', ()=>{ if(pulling) window.dispatchEvent(new Event('monitor-soft-refresh')); y0 = null; pulling = false; }, { passive:true });
+  }
   syncUI(); update();
 })();
 </script>
