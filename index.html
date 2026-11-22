@@ -2403,6 +2403,10 @@
   .rh-drop .rh-more:hover{ background:color-mix(in srgb, var(--c-pri, #0f5c4a) 8%, transparent); color:var(--c-pri, #0f5c4a); }
   .rh-drop .rh-more[hidden]{ display:none; }
   #resHist.collapsed > .sh-row ~ .sh-row, #resHist.collapsed > .sh-clear-row{ display:none; }
+  .rh-drop:has(#resHist.collapsed){ align-items:center; padding-top:6px; padding-bottom:6px; }
+  .rh-drop:has(#resHist.collapsed) .rh-more{ margin-top:0; }
+  #resHist .sh-row{ align-items:center; }
+  #resHist .sh-row .rl-t{ display:flex; align-items:center; gap:.3em; text-align:left; }
   #resHist > .sh-clear-row{ padding-bottom:6px; }
   #resHist .sh-row .rl-t{ background:none; border:none; padding:6px 0; color:inherit; font:inherit; cursor:pointer; }
   .sh-row .rl-t b, .sh-row .sh-name b{ font-weight:800; letter-spacing:.04em; }
