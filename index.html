@@ -15549,8 +15549,8 @@ if('serviceWorker' in navigator && !isApk()){
     document.addEventListener('touchstart', e=>{ y0 = (e.touches.length === 1 && window.scrollY <= 0 && !innerScrolled(e.target)) ? e.touches[0].clientY : null; pulling = false; }, { passive:true });
     document.addEventListener('touchmove', e=>{
       if(y0 == null) return;
-      if(e.touches[0].clientY - y0 > 0 && window.scrollY <= 0 && !innerScrolled(e.target)){ if(e.touches[0].clientY - y0 > 40) pulling = true; if(e.cancelable) e.preventDefault(); }   // se corta el gesto nativo de recargar
-    }, { passive:false });
+      if(e.touches[0].clientY - y0 > 40 && window.scrollY <= 0 && !innerScrolled(e.target)) pulling = true;   // solo detecta el gesto: no bloquea el desplazamiento
+    }, { passive:true });
     document.addEventListener('touchend', ()=>{ if(pulling) window.dispatchEvent(new Event('monitor-soft-refresh')); y0 = null; pulling = false; }, { passive:true });
   }
   syncUI(); update();
